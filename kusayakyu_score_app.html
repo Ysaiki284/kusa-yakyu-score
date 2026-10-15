@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>草野球スコア</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#172033;background:#f3f6fb}
+*{box-sizing:border-box}body{margin:0}header{background:#173c69;color:#fff;padding:18px 16px}
+header h1{font-size:1.35rem;margin:0 0 5px}header p{margin:0;font-size:.9rem;opacity:.9}
+main{max-width:1000px;margin:auto;padding:14px}.tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+button,.btn{border:0;border-radius:8px;padding:10px 13px;background:#245b98;color:white;font-weight:650;cursor:pointer}
+button.secondary{background:#e4ebf5;color:#183454}button.danger{background:#b33a3a}.tab{background:#dfe7f2;color:#183454}.tab.active{background:#245b98;color:#fff}
+.panel{background:#fff;border:1px solid #dbe3ee;border-radius:12px;padding:15px;margin-bottom:14px;box-shadow:0 2px 8px #1834540a}
+h2{font-size:1.1rem;margin:0 0 12px}h3{font-size:1rem;margin:14px 0 8px}
+label{display:block;font-weight:650;font-size:.9rem;margin:8px 0 5px}
+input,select,textarea{font:inherit;padding:10px;border:1px solid #c8d3e1;border-radius:8px;width:100%;background:#fff;color:#172033}
+.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{border-bottom:1px solid #e4eaf2;padding:9px 7px;text-align:left}th{background:#f1f5fa}
+.tablewrap{overflow-x:auto}.muted{color:#5d6c80;font-size:.88rem}.hidden{display:none!important}.statgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.stat{background:#edf4fc;border-radius:9px;padding:11px}.stat strong{display:block;font-size:1.2rem}.pill{display:inline-block;border-radius:999px;background:#e4edf9;padding:3px 8px;font-size:.8rem}
+.batting-row{display:grid;grid-template-columns:minmax(110px,1fr) minmax(120px,1fr) auto;gap:8px;align-items:center;margin:8px 0}
+.notice{background:#fff8df;border:1px solid #f1d889;padding:10px;border-radius:8px;font-size:.88rem}
+@media(max-width:600px){.row{grid-template-columns:1fr}.statgrid{grid-template-columns:1fr 1fr}.batting-row{grid-template-columns:1fr 1fr}.batting-row button{grid-column:1/-1}main{padding:10px}}
+</style>
+</head>
+<body>
+<header><h1>⚾ 草野球スコア</h1><p>試合記録・選手名簿・シーズン成績をまとめて管理</p></header>
+<main>
+<div class="notice">この試作版は、入力内容を現在のブラウザに保存します。別の端末と共有するには「バックアップ」でデータを書き出して移す必要があります。</div>
+<nav class="tabs" aria-label="メニュー">
+<button class="tab active" data-tab="game">試合記録</button><button class="tab" data-tab="members">選手名簿</button><button class="tab" data-tab="stats">シーズン成績</button><button class="tab" data-tab="backup">バックアップ</button>
+</nav>
+<section id="game" class="page">
+<div class="panel"><h2>試合を記録</h2>
+<div class="row">
+<div><label for="gameDate">試合日</label><input id="gameDate" type="date"></div>
+<div><label for="opponent">対戦相手</label><input id="opponent" placeholder="例：ブルースターズ"></div>
+<div><label for="venue">球場（任意）</label><input id="venue" placeholder="例：市民球場"></div>
+<div><label for="ourTeam">自チーム名</label><input id="ourTeam" placeholder="例：草野球チーム"></div>
+</div>
+<h3>イニング別得点</h3><p class="muted">各イニングの得点を入力してください。延長戦は「イニング追加」で増やせます。</p>
+<div class="tablewrap"><table id="scoreTable"><thead><tr id="scoreHead"><th>チーム</th></tr></thead><tbody id="scoreBody"></tbody></table></div>
+<div class="actions"><button class="secondary" id="addInning">＋ イニング追加</button></div>
+<h3>打撃結果</h3><p class="muted">出場選手を選び、その打席の結果を追加します。打数・安打・本塁打などはシーズン成績に自動集計されます。</p>
+<div class="row">
+<div><label for="batter">選手</label><select id="batter"></select></div>
+<div><label for="result">打撃結果</label><select id="result">
+<option value="single">単打（安打）</option><option value="double">二塁打</option><option value="triple">三塁打</option><option value="hr">本塁打</option><option value="out">アウト</option><option value="walk">四球</option><option value="hbp">死球</option><option value="sac">犠打・犠飛</option><option value="error">失策出塁</option><option value="fc">野選</option>
+</select></div>
+</div>
+<div class="actions"><button id="addAtBat">＋ 打撃結果を追加</button></div>
+<div id="currentAtBats"></div>
+<div class="actions"><button id="saveGame">この試合を保存</button><button class="secondary" id="clearGame">入力をクリア</button></div>
+</div>
+<div class="panel"><h2>保存済みの試合</h2><div id="gamesList"></div></div>
+</section>
+<section id="members" class="page hidden">
+<div class="panel"><h2>選手名簿</h2><p class="muted">選手を追加・編集できます。削除しても、過去の試合記録にある名前は記録として残ります。</p>
+<div class="row"><div><label for="memberName">選手名</label><input id="memberName" placeholder="例：山田 太郎"></div><div><label for="memberNumber">背番号（任意）</label><input id="memberNumber" type="number" placeholder="例：10"></div></div>
+<div class="actions"><button id="addMember">選手を追加</button></div><div id="membersList"></div></div>
+</section>
+<section id="stats" class="page hidden">
+<div class="panel"><h2>シーズン成績</h2><p class="muted">保存した試合の打撃結果から自動集計します。四球・死球・犠打・失策出塁・野選は打数に含めません。</p>
+<div id="leaderCards" class="statgrid"></div><h3>打撃ランキング</h3><div id="statsTable"></div><h3>試合結果一覧</h3><div id="resultsTable"></div></div>
+</section>
+<section id="backup" class="page hidden">
+<div class="panel"><h2>バックアップと復元</h2><p>データをファイルに保存して、別のパソコンやスマートフォンへ移せます。チーム全員とのリアルタイム共有機能ではありません。</p>
+<div class="actions"><button id="exportData">バックアップをダウンロード</button><button class="secondary" id="importButton">バックアップを読み込む</button><input id="importFile" type="file" accept=".json,application/json" class="hidden"></div>
+<p id="backupMessage" class="muted"></p></div>
+</section>
+</main>
+<script>
+const KEY='kusaYakyuScoreDataV1';
+const defaultData={members:[],games:[]};
+let data=loadData(),innings=Array(9).fill(0),atBats=[];
+function loadData(){try{return {...defaultData,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch(e){return {...defaultData}}}
+function persist(){localStorage.setItem(KEY,JSON.stringify(data));renderAll()}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function today(){return new Date().toISOString().slice(0,10)}
+document.getElementById('gameDate').value=today();
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.page').forEach(p=>p.classList.toggle('hidden',p.id!==b.dataset.tab));renderAll()}));
+function drawScore(){const head=document.getElementById('scoreHead');head.innerHTML='<th>チーム</th>'+innings.map((_,i)=>`<th>${i+1}回</th>`).join('')+'<th>計</th>';const our=document.getElementById('ourTeam').value||'自チーム';const opp=document.getElementById('opponent').value||'相手';const make=(id,name,vals)=>`<tr><th>${esc(name)}</th>${vals.map((v,i)=>`<td><input aria-label="${esc(name)} ${i+1}回得点" type="number" min="0" data-score="${id}" data-inning="${i}" value="${Number(v)||0}" style="min-width:55px;padding:6px"></td>`).join('')}<th>${vals.reduce((a,b)=>a+(Number(b)||0),0)}</th></tr>`;document.getElementById('scoreBody').innerHTML=make('us',our,innings)+make('them',opp,innings.map(()=>0));}
+function refreshBatterOptions(){const sel=document.getElementById('batter'),old=sel.value;sel.innerHTML=data.members.map(m=>`<option value="${esc(m.name)}">${m.number!==''?'#'+esc(m.number)+' ':''}${esc(m.name)}</option>`).join('');if(!data.members.length)sel.innerHTML='<option value="">先に選手名簿へ選手を追加してください</option>';if([...sel.options].some(o=>o.value===old))sel.value=old}
+function renderAtBats(){const names={single:'単打',double:'二塁打',triple:'三塁打',hr:'本塁打',out:'アウト',walk:'四球',hbp:'死球',sac:'犠打・犠飛',error:'失策出塁',fc:'野選'};const box=document.getElementById('currentAtBats');box.innerHTML=atBats.length?'<h3>この試合の入力済み打撃結果</h3>'+atBats.map((a,i)=>`<div class="batting-row"><span>${esc(a.player)}</span><span class="pill">${names[a.result]}</span><button class="danger" data-remove-ab="${i}">削除</button></div>`).join(''):'<p class="muted">まだ打撃結果はありません。</p>';box.querySelectorAll('[data-remove-ab]').forEach(b=>b.onclick=()=>{atBats.splice(+b.dataset.removeAb,1);renderAtBats()})}
+function addAtBat(){const player=document.getElementById('batter').value;if(!player){alert('先に「選手名簿」で選手を追加してください。');return}atBats.push({player,result:document.getElementById('result').value});renderAtBats()}
+function scoreValues(id){return [...document.querySelectorAll(`[data-score="${id}"]`)].map(x=>Number(x.value)||0)}
+function saveGame(){const date=document.getElementById('gameDate').value,opponent=document.getElementById('opponent').value.trim();if(!opponent){alert('対戦相手を入力してください。');return}const us=scoreValues('us'),them=scoreValues('them');const ourTeam=document.getElementById('ourTeam').value.trim()||'自チーム';data.games.push({id:Date.now(),date,opponent,venue:document.getElementById('venue').value.trim(),ourTeam,us,them,atBats:[...atBats]});persist();innings=Array(9).fill(0);atBats=[];document.getElementById('opponent').value='';document.getElementById('venue').value='';drawScore();renderAtBats();alert('試合を保存しました。シーズン成績に反映されます。')}
+function stats(){const s={};data.games.forEach(g=>g.atBats.forEach(a=>{if(!s[a.player])s[a.player]={player:a.player,pa:0,ab:0,h:0,hr:0,bb:0,hbp:0};const x=s[a.player];x.pa++;if(['single','double','triple','hr','out','fc'].includes(a.result))x.ab++;if(['single','double','triple','hr'].includes(a.result))x.h++;if(a.result==='hr')x.hr++;if(a.result==='walk')x.bb++;if(a.result==='hbp')x.hbp++}));return Object.values(s).map(x=>({...x,avg:x.ab?x.h/x.ab:0})).sort((a,b)=>b.avg-a.avg||b.h-a.h)}
+function renderStats(){const st=stats();const top=(key)=>[...st].sort((a,b)=>b[key]-a[key])[0];const leaderCards=document.getElementById('leaderCards');leaderCards.innerHTML=[['打率トップ',top('avg')?top('avg').player+' · '+top('avg').avg.toFixed(3):'—'],['最多安打',top('h')?top('h').player+' · '+top('h').h+'本':'—'],['最多本塁打',top('hr')?top('hr').player+' · '+top('hr').hr+'本':'—']].map(([a,b])=>`<div class="stat"><span class="muted">${a}</span><strong>${esc(b)}</strong></div>`).join('');document.getElementById('statsTable').innerHTML=st.length?`<div class="tablewrap"><table><thead><tr><th>選手</th><th>打率</th><th>打数</th><th>安打</th><th>本塁打</th><th>四球</th><th>死球</th></tr></thead><tbody>${st.map(x=>`<tr><td>${esc(x.player)}</td><td>${x.avg.toFixed(3)}</td><td>${x.ab}</td><td>${x.h}</td><td>${x.hr}</td><td>${x.bb}</td><td>${x.hbp}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">試合の打撃結果を保存すると、ここに成績が表示されます。</p>';document.getElementById('resultsTable').innerHTML=data.games.length?`<div class="tablewrap"><table><thead><tr><th>日付</th><th>対戦相手</th><th>結果</th><th></th></tr></thead><tbody>${[...data.games].reverse().map(g=>`<tr><td>${esc(g.date)}</td><td>${esc(g.opponent)}</td><td>${g.us.reduce((a,b)=>a+b,0)} - ${g.them.reduce((a,b)=>a+b,0)}</td><td><button class="danger" data-del-game="${g.id}">削除</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">保存済みの試合はありません。</p>';document.querySelectorAll('[data-del-game]').forEach(b=>b.onclick=()=>{if(confirm('この試合記録を削除しますか？')){data.games=data.games.filter(g=>g.id!==Number(b.dataset.delGame));persist()}})}
+function renderMembers(){const box=document.getElementById('membersList');box.innerHTML=data.members.length?`<div class="tablewrap"><table><thead><tr><th>背番号</th><th>選手名</th><th>操作</th></tr></thead><tbody>${data.members.map((m,i)=>`<tr><td>${esc(m.number||'—')}</td><td>${esc(m.name)}</td><td><button class="secondary" data-edit-member="${i}">編集</button> <button class="danger" data-del-member="${i}">削除</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">まだ選手が登録されていません。</p>';box.querySelectorAll('[data-edit-member]').forEach(b=>b.onclick=()=>{const i=+b.dataset.editMember,m=data.members[i],n=prompt('選手名',m.name);if(n===null||!n.trim())return;const num=prompt('背番号（空欄可）',m.number||'');data.members[i]={name:n.trim(),number:num??m.number};persist()});box.querySelectorAll('[data-del-member]').forEach(b=>b.onclick=()=>{const i=+b.dataset.delMember;if(confirm(data.members[i].name+' を名簿から削除しますか？')){data.members.splice(i,1);persist()}})}
+function renderGames(){const box=document.getElementById('gamesList');box.innerHTML=data.games.length?`<div class="tablewrap"><table><thead><tr><th>日付</th><th>対戦相手</th><th>スコア</th></tr></thead><tbody>${[...data.games].reverse().map(g=>`<tr><td>${esc(g.date)}</td><td>${esc(g.opponent)}</td><td>${g.us.reduce((a,b)=>a+b,0)} - ${g.them.reduce((a,b)=>a+b,0)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">まだ試合が保存されていません。</p>'}
+function renderAll(){refreshBatterOptions();renderMembers();renderGames();renderStats()}
+document.getElementById('addInning').onclick=()=>{innings.push(0);drawScore()};
+document.getElementById('ourTeam').oninput=drawScore;document.getElementById('opponent').oninput=drawScore;
+document.getElementById('addAtBat').onclick=addAtBat;document.getElementById('saveGame').onclick=saveGame;
+document.getElementById('clearGame').onclick=()=>{if(confirm('入力中の試合をクリアしますか？')){innings=Array(9).fill(0);atBats=[];document.getElementById('opponent').value='';document.getElementById('venue').value='';document.getElementById('gameDate').value=today();drawScore();renderAtBats()}};
+document.getElementById('addMember').onclick=()=>{const name=document.getElementById('memberName').value.trim(),number=document.getElementById('memberNumber').value.trim();if(!name){alert('選手名を入力してください。');return}if(data.members.some(m=>m.name===name)){alert('同じ名前の選手がすでにいます。');return}data.members.push({name,number});document.getElementById('memberName').value='';document.getElementById('memberNumber').value='';persist()};
+document.getElementById('exportData').onclick=()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='kusa-yakyu-backup.json';a.click();URL.revokeObjectURL(url);document.getElementById('backupMessage').textContent='バックアップファイルをダウンロードしました。'};
+document.getElementById('importButton').onclick=()=>document.getElementById('importFile').click();
+document.getElementById('importFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const parsed=JSON.parse(await f.text());if(!Array.isArray(parsed.members)||!Array.isArray(parsed.games))throw Error();if(confirm('現在のデータを読み込んだデータで置き換えますか？')){data=parsed;persist();document.getElementById('backupMessage').textContent='バックアップを復元しました。'}}catch(err){alert('このファイルはバックアップとして読み込めませんでした。')}e.target.value=''};
+drawScore();renderAtBats();renderAll();
+</script>
+</body></html>
